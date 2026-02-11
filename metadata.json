@@ -1,0 +1,7 @@
+{
+  "name": "Bella Vista - Cardápio Digital",
+  "description": "Um sistema de cardápio digital elegante para o Bar e Restaurante Bella Vista, com recomendações inteligentes via IA, categorias organizadas e gerenciamento de pedidos.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
