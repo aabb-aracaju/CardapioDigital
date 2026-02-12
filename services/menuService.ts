@@ -1,7 +1,6 @@
 
 import { 
   collection, 
-  getDocs, 
   doc, 
   setDoc, 
   deleteDoc, 
@@ -14,15 +13,32 @@ import {
   uploadString, 
   getDownloadURL 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
-import { db, storage } from "./firebaseConfig";
+import { signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { db, storage, auth } from "./firebaseConfig";
 import { MenuItem } from "../types";
 
 const COLLECTION_NAME = 'menu_bella_vista';
 
 export const menuService = {
+  // Inicializa autenticação anônima se necessário
+  ensureAuth: async () => {
+    if (!auth.currentUser) {
+      try {
+        await signInAnonymously(auth);
+      } catch (error) {
+        console.error("Erro na autenticação anônima:", error);
+        throw error;
+      }
+    }
+  },
+
   // Escuta alterações em tempo real com tratamento de erro
   subscribeToMenu: (onSuccess: (items: MenuItem[]) => void, onError: (error: any) => void) => {
+    // Nota: O App.tsx deve chamar ensureAuth antes de chamar esta função para garantir
+    // que o listener não falhe imediatamente por falta de permissão.
+    
     const q = query(collection(db, COLLECTION_NAME), orderBy('category'));
+    
     return onSnapshot(
       q, 
       (snapshot) => {
@@ -40,6 +56,7 @@ export const menuService = {
   },
 
   uploadImage: async (itemId: string, base64Image: string): Promise<string> => {
+    await menuService.ensureAuth();
     try {
       if (base64Image.startsWith('http')) return base64Image;
       const storageRef = ref(storage, `menu/${itemId}.jpg`);
@@ -47,18 +64,15 @@ export const menuService = {
       return await getDownloadURL(storageRef);
     } catch (error: any) {
       console.error("Erro no upload da imagem:", error);
-      // Repassa erro mais amigável
       if (error.code === 'storage/unauthorized') {
-         throw new Error("Permissão negada no Storage (Imagens). Verifique as Regras no Firebase.");
+         throw new Error("Permissão negada no Storage. Verifique se as Regras permitem acesso autenticado.");
       }
-      if (error.code === 'storage/object-not-found' || error.code === 'storage/bucket-not-found') {
-        throw new Error("Bucket de Storage não encontrado. Ative o Storage no Console do Firebase.");
-      }
-      throw new Error("Falha ao enviar imagem. Verifique se o Storage está ativado.");
+      throw new Error("Falha ao enviar imagem. Verifique sua conexão.");
     }
   },
 
   upsertItem: async (item: MenuItem) => {
+    await menuService.ensureAuth();
     try {
       let finalImage = item.image;
       
@@ -75,15 +89,15 @@ export const menuService = {
     } catch (error: any) {
       console.error("Erro ao salvar item:", error);
       if (error.code === 'permission-denied') {
-        throw new Error("Permissão negada no Banco de Dados. Verifique as Regras do Firestore.");
+        throw new Error("Permissão negada. Verifique se você está conectado à internet.");
       }
-      // Se já tratamos o erro acima (ex: imagem), só repassa
       if (error.message) throw error;
       throw new Error("Erro desconhecido ao salvar. Tente novamente.");
     }
   },
 
   deleteItem: async (id: string) => {
+    await menuService.ensureAuth();
     const itemRef = doc(db, COLLECTION_NAME, id);
     await deleteDoc(itemRef);
   }

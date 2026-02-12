@@ -27,24 +27,42 @@ const App: React.FC = () => {
   const [currentEditItem, setCurrentEditItem] = useState<MenuItem | null>(null);
 
   useEffect(() => {
-    setIsLoading(true);
-    const unsubscribe = menuService.subscribeToMenu(
-      (items) => {
-        setMenuItems(items);
-        setFirebaseError(null);
+    let unsubscribe: (() => void) | undefined;
+
+    const initMenu = async () => {
+      setIsLoading(true);
+      try {
+        // Garante autenticação anônima antes de conectar
+        await menuService.ensureAuth();
+        
+        unsubscribe = menuService.subscribeToMenu(
+          (items) => {
+            setMenuItems(items);
+            setFirebaseError(null);
+            setIsLoading(false);
+          },
+          (error) => {
+            setIsLoading(false);
+            console.error("Firebase Connection Error:", error);
+            if (error.code === 'permission-denied') {
+              setFirebaseError("Acesso Negado: As regras do Firebase exigem autenticação ou estão bloqueadas.");
+            } else {
+              setFirebaseError("Falha na conexão com o banco de dados.");
+            }
+          }
+        );
+      } catch (err) {
+        console.error("Failed to auth:", err);
+        setFirebaseError("Erro de autenticação inicial. Verifique sua conexão.");
         setIsLoading(false);
-      },
-      (error) => {
-        setIsLoading(false);
-        console.error("Firebase Connection Error:", error);
-        if (error.code === 'permission-denied') {
-          setFirebaseError("Acesso Negado: As regras de segurança do Firebase estão bloqueando a leitura.");
-        } else {
-          setFirebaseError("Falha na conexão com o banco de dados. Verifique sua internet ou credenciais.");
-        }
       }
-    );
-    return () => unsubscribe();
+    };
+
+    initMenu();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const categoriesToRender = useMemo(() => {
@@ -82,12 +100,10 @@ const App: React.FC = () => {
       setIsSyncing(true);
       setShowNotification("Sincronizando...");
       
-      // Cria uma promessa de timeout de 15 segundos
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("A conexão está muito lenta ou o Storage não foi ativado.")), 15000)
+        setTimeout(() => reject(new Error("A conexão está muito lenta.")), 15000)
       );
 
-      // Corrida entre salvar e o timeout
       await Promise.race([
         menuService.upsertItem(item),
         timeoutPromise
@@ -100,8 +116,7 @@ const App: React.FC = () => {
       console.error(error);
       const msg = error.message || "Erro ao salvar dados.";
       setShowNotification(msg);
-      // Se for erro de permissão ou storage, exibe no banner principal também
-      if (msg.includes("Permissão") || msg.includes("Storage") || msg.includes("Configurado") || msg.includes("ativado")) {
+      if (msg.includes("Permissão") || msg.includes("Storage")) {
         setFirebaseError(msg);
       }
     } finally {
@@ -156,7 +171,7 @@ const App: React.FC = () => {
             <div className="text-center md:text-left">
               <p className="font-bold text-sm mb-1">Atenção: {firebaseError}</p>
               <p className="text-xs opacity-80 leading-relaxed">
-                Verifique se o <strong>Storage</strong> está ativado no Console do Firebase e se as <strong>Regras (Rules)</strong> de Database e Storage estão configuradas.
+                O aplicativo está tentando autenticar anonimamente. Se o erro persistir, verifique as regras no Firebase Console para: <code>allow read, write: if request.auth != null;</code> e ative o <strong>Anonymous Auth</strong>.
               </p>
             </div>
           </div>
@@ -201,15 +216,14 @@ const App: React.FC = () => {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 text-indigo-300">
                <i className="fa-solid fa-circle-notch fa-spin text-4xl mb-4"></i>
-               <p className="font-bold text-xs uppercase tracking-widest">Carregando Cardápio...</p>
+               <p className="font-bold text-xs uppercase tracking-widest">Conectando ao Menu...</p>
             </div>
           ) : (
             <div className="px-4 space-y-16 mb-20">
               {menuItems.length === 0 && !firebaseError && (
                 <div className="text-center py-20 bg-white/50 rounded-[2rem] border-2 border-dashed border-gray-200">
                    <i className="fa-solid fa-utensils text-5xl text-gray-200 mb-4"></i>
-                   <p className="text-gray-400 font-medium">O cardápio está vazio.</p>
-                   <p className="text-xs text-gray-400 mt-2">Ative o modo Admin no ícone 'B' para adicionar pratos.</p>
+                   <p className="text-gray-400 font-medium">O cardápio está vazio ou carregando...</p>
                 </div>
               )}
               {categoriesToRender.map(category => {

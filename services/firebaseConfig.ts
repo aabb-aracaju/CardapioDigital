@@ -2,34 +2,32 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getStorage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 /**
- * 💡 GUIA DE CONFIGURAÇÃO DE SEGURANÇA (RULES)
+ * 💡 IMPORTANTE: REGRAS DE SEGURANÇA (COPIE E COLE NO CONSOLE DO FIREBASE)
  * 
- * Se aparecer erro de "Permissão negada" ou "Sincronizando" infinito:
- * 1. Vá em https://console.firebase.google.com/
- * 2. Entre no projeto: "cardapio-6e814"
+ * Se você estiver vendo erro de "Missing permissions", suas regras provavelmente exigem autenticação.
+ * Este app agora faz login anônimo automaticamente.
  * 
- * --- CONFIGURAR DATABASE ---
- * 3. Menu "Firestore Database" > aba "Regras" (Rules)
- * 4. Cole este código e clique em Publicar:
+ * Certifique-se de ativar "Anonymous" em Authentication > Sign-in method no Console.
+ * 
+ * Regras recomendadas para este app (Firestore):
  * 
  * service cloud.firestore {
  *   match /databases/{database}/documents {
  *     match /{document=**} {
- *       allow read, write: if true;
+ *       allow read, write: if request.auth != null;
  *     }
  *   }
  * }
  * 
- * --- CONFIGURAR IMAGENS (STORAGE) ---
- * 5. Menu "Storage" > aba "Regras" (Rules)
- * 6. Cole este código e clique em Publicar:
+ * Regras recomendadas para Storage:
  * 
  * service firebase.storage {
  *   match /b/{bucket}/o {
  *     match /{allPaths=**} {
- *       allow read, write: if true;
+ *       allow read, write: if request.auth != null;
  *     }
  *   }
  * }
@@ -44,6 +42,8 @@ const firebaseConfig = {
   appId: "1:112243452883:web:4b6de2ea4920ad084b9d26"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+export const auth = getAuth(app);
