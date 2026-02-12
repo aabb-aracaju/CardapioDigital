@@ -4,15 +4,15 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase
 import { getStorage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 /**
- * 💡 COMO CORRIGIR O ERRO DE PERMISSÃO NO CONSOLE DO FIREBASE:
+ * 💡 GUIA DE CONFIGURAÇÃO DE SEGURANÇA (RULES)
  * 
- * 1. Acesse: https://console.firebase.google.com/
- * 2. Selecione seu projeto: "cardapiodigital-ca519"
+ * Se aparecer erro de "Permissão negada" ou "Sincronizando" infinito:
+ * 1. Vá em https://console.firebase.google.com/
+ * 2. Entre no projeto: "cardapio-6e814"
  * 
- * --- NO FIRESTORE ---
- * 3. Clique em "Firestore Database" no menu lateral.
- * 4. Vá na aba "Rules" (Regras).
- * 5. Substitua o conteúdo pelo código abaixo e clique em "Publicar":
+ * --- CONFIGURAR DATABASE ---
+ * 3. Menu "Firestore Database" > aba "Regras" (Rules)
+ * 4. Cole este código e clique em Publicar:
  * 
  * service cloud.firestore {
  *   match /databases/{database}/documents {
@@ -22,10 +22,9 @@ import { getStorage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-s
  *   }
  * }
  * 
- * --- NO STORAGE ---
- * 6. Clique em "Storage" no menu lateral.
- * 7. Vá na aba "Rules" (Regras).
- * 8. Substitua o conteúdo pelo código abaixo e clique em "Publicar":
+ * --- CONFIGURAR IMAGENS (STORAGE) ---
+ * 5. Menu "Storage" > aba "Regras" (Rules)
+ * 6. Cole este código e clique em Publicar:
  * 
  * service firebase.storage {
  *   match /b/{bucket}/o {
@@ -37,12 +36,12 @@ import { getStorage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-s
  */
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDpcw0qza5IxfWDNeP8UgEEwCOeg0HUsCc",
-  authDomain: "cardapiodigital-ca519.firebaseapp.com",
-  projectId: "cardapiodigital-ca519",
-  storageBucket: "cardapiodigital-ca519.firebasestorage.app",
-  messagingSenderId: "733856526939",
-  appId: "1:733856526939:web:7cb406d8d022cccf65457e"
+  apiKey: "AIzaSyBI_Xf9GtY7fd97TlmjyivZEHohB4ySab0",
+  authDomain: "cardapio-6e814.firebaseapp.com",
+  projectId: "cardapio-6e814",
+  storageBucket: "cardapio-6e814.firebasestorage.app",
+  messagingSenderId: "112243452883",
+  appId: "1:112243452883:web:4b6de2ea4920ad084b9d26"
 };
 
 const app = initializeApp(firebaseConfig);

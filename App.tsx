@@ -81,16 +81,32 @@ const App: React.FC = () => {
     try {
       setIsSyncing(true);
       setShowNotification("Sincronizando...");
-      await menuService.upsertItem(item);
+      
+      // Cria uma promessa de timeout de 15 segundos
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("A conexão está muito lenta ou o Storage não foi ativado.")), 15000)
+      );
+
+      // Corrida entre salvar e o timeout
+      await Promise.race([
+        menuService.upsertItem(item),
+        timeoutPromise
+      ]);
+
       setIsEditing(false);
       setCurrentEditItem(null);
       setShowNotification("Cardápio atualizado!");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      setShowNotification("Erro ao salvar dados.");
+      const msg = error.message || "Erro ao salvar dados.";
+      setShowNotification(msg);
+      // Se for erro de permissão ou storage, exibe no banner principal também
+      if (msg.includes("Permissão") || msg.includes("Storage") || msg.includes("Configurado") || msg.includes("ativado")) {
+        setFirebaseError(msg);
+      }
     } finally {
       setIsSyncing(false);
-      setTimeout(() => setShowNotification(null), 2500);
+      setTimeout(() => setShowNotification(null), 4000);
     }
   };
 
@@ -138,9 +154,9 @@ const App: React.FC = () => {
               <i className="fa-solid fa-shield-halved text-2xl"></i>
             </div>
             <div className="text-center md:text-left">
-              <p className="font-bold text-sm mb-1">{firebaseError}</p>
+              <p className="font-bold text-sm mb-1">Atenção: {firebaseError}</p>
               <p className="text-xs opacity-80 leading-relaxed">
-                Para corrigir, você precisa alterar as <strong>Rules</strong> no Console do Firebase para permitir acesso público de leitura e escrita. Veja as instruções no arquivo <code>services/firebaseConfig.ts</code>.
+                Verifique se o <strong>Storage</strong> está ativado no Console do Firebase e se as <strong>Regras (Rules)</strong> de Database e Storage estão configuradas.
               </p>
             </div>
           </div>
@@ -258,7 +274,7 @@ const App: React.FC = () => {
 
       {showNotification && (
         <div className="fixed top-24 left-1/2 md:left-2/3 -translate-x-1/2 z-[100] bg-indigo-950 text-white px-6 py-3 rounded-2xl shadow-2xl animate-fade-up font-bold text-xs border border-white/10 uppercase tracking-wider flex items-center gap-3">
-          <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+          <div className={`w-2 h-2 rounded-full animate-pulse ${showNotification.includes('Erro') || showNotification.includes('Tempo') ? 'bg-red-400' : 'bg-yellow-400'}`}></div>
           {showNotification}
         </div>
       )}
